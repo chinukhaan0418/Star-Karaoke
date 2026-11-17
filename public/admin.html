@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Stars Karaoke · Админ</title>
+
+<link rel="stylesheet" href="style.css">
+
+<style>
+[hidden]{display:none!important}
+main{max-width:1000px;margin:0 auto;padding:2rem 1.2rem}
+.bar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:1rem 0}
+.tab{background:none;border:1px solid #4a3568;color:var(--text);padding:.5rem 1rem;cursor:pointer;font:inherit;border-radius:2px}
+.tab[aria-pressed=true]{border-color:var(--brass);color:var(--brass)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:.6rem;border-bottom:1px solid #33204d;vertical-align:top}
+th{color:var(--mute);font-weight:400}
+.wrap{overflow-x:auto}
+.s-pending{color:#f0c36a}
+.s-confirmed{color:#6fdc9a}
+.s-cancelled{color:#c77}
+.sm{padding:.3rem .7rem;font-size:.85rem;margin:0 .3rem .3rem 0}
+.err{color:#ff8fa3;min-height:1.4rem}
+#login{max-width:360px;margin:12vh auto}
+</style>
+</head>
+
+<body>
+<main>
+
+<h2>Stars Karaoke · Админ</h2>
+
+<form id="login">
+<label>Нэр
+<input name="u" autocomplete="username" required>
+</label>
+
+<label>Нууц үг
+<input name="p" type="password" autocomplete="current-password" required>
+</label>
+
+<button class="btn" type="submit">Нэвтрэх</button>
+<p class="err" id="le"></p>
+</form>
+
+<div id="app" hidden>
+
+<div class="bar">
+<span id="who"></span>
+<button class="tab" id="out">Гарах</button>
+</div>
+
+<div class="bar" id="tabs"></div>
+
+<p class="err" id="e"></p>
+
+<div id="view" class="wrap"></div>
+
+</div>
+</main>
+
+<script>
+
+var API = (location.port === '5500' || location.port === '5501')
+    ? 'http://' + location.hostname + ':8000'
+    : '';
+
+var T = sessionStorage.getItem('t');
+var ROLE = '';
+var tab = 'bookings';
+var filter = '';
+var when = 'upcoming';
+
+var STATUS_MN = {
+    pending: 'Хүлээгдэж буй',
+    confirmed: 'Баталсан',
+    cancelled: 'Цуцалсан'
+};
+
+var $ = function(i) {
+    return document.getElementById(i);
+};
+
+function el(t, a, k) {
+    var e = document.createElement(t);
+
+    for (var x in a || {}) {
+        e[x] = a[x];
+    }
+
+    (k || []).forEach(function(c) {
+        e.append(c);
+    });
+
+    return e;
+}
+
+function api(m, p, b) {
+
+    return fetch(API + '/api/' + p, {
+        method: m,
+
+        headers: Object.assign(
+            {'Content-Type': 'application/json'},
+            T ? {Authorization: 'Bearer ' + T} : {}
+        ),
+
+        body: b ? JSON.stringify(b) : undefined
+
+    })
+
+    .catch(function() {
+        throw new Error('Сүлжээний алдаа');
+    })
+
+    .then(function(r) {
+
+        // the body may be empty or not JSON (proxy error page, 502...)
+        return r.text().then(function(txt) {
+
+            var d = {};
+
+            try {
+                d = txt ? JSON.parse(txt) : {};
+            } catch (x) {}
+
+            if (r.status === 401 && T) {
+                logout();
+            }
+
+            if (!r.ok) {
+                throw new Error(d.error || 'Алдаа (' + r.status + ')');
+            }
+
+            return d;
+        });
+    });
+}
+
+function err(m) {
+    $('e').textContent = m || '';
+}
+
+function logout() {
+    sessionStorage.removeItem('t');
+
+    T = null;
+    ROLE = '';
+    tab = 'bookings';
+    filter = '';
+    when = 'upcoming';
+
+    // do not leave the previous user's data in the page
+    $('view').textContent = '';
+    $('tabs').textContent = '';
+    $('who').textContent = '';
+    $('login').reset();
+    err('');
+
+    $('app').hidden = true;
+    $('login').hidden = false;
+}
+
+$('out').onclick = logout;
+
+function money(n) {
+    return (Number(n) || 0).toLocaleString('en-US') + '₮';
+}
+
+
+// ==========================================
+// LOGIN
+// ==========================================
+
+$('login').onsubmit = function(e) {
+
+    e.preventDefault();
+
+    var f = e.target;
+
+    api('POST', 'admin/login', {
+        username: f.u.value,
+        password: f.p.value
+    })
+
+    .then(function(d) {
+
+        T = d.token;
+
+        sessionStorage.setItem('t', T);
+
+        $('le').textContent = '';
+
+        // always start on the bookings tab, a staff user must not
+        // land on an owner-only tab left over from another session
+        tab = 'bookings';
+        filter = '';
+
+        start();
+
+    })
+
+    .catch(function(x) {
+        $('le').textContent = x.message;
+    });
+};
+
+
+// ==========================================
+// NAVIGATION
+// ==========================================
+
+function start() {
+
+    api('GET', 'admin/me')
+
+    .then(function(m) {
+
+        ROLE = m.role;
+
+        $('login').hidden = true;
+        $('app').hidden = false;
+
+        $('who').textContent = m.username + ' (' + m.role + ')';
+
+        nav();
+        show();
+
+    })
+
+    .catch(function(x) {
+        $('le').textContent = x.message;
+    });
+}
+
+function nav() {
+
+    var t = $('tabs');
+
+    t.textContent = '';
+
+    [
+        ['bookings', 'Захиалгууд'],
+        ['password', 'Нууц үг']
+    ]
+
+    .concat(
+        ROLE == 'owner'
+        ? [
+            ['admins', 'Админууд'],
+            ['rooms', 'Өрөөнүүд']
+        ]
+        : []
+    )
+
+    .forEach(function(x) {
+
+        var b = el('button', {
+            className: 'tab',
+            textContent: x[1],
+
+            onclick: function() {
+                tab = x[0];
+                nav();
+                show();
+            }
+        });
+
+        b.setAttribute('aria-pressed', tab == x[0]);
+
+        t.append(b);
+    });
+}
+
+function show() {
+
+    err('');
+
+    var v = $('view');
+
+    v.textContent = '';
+
+    var views = {
+        bookings: bookings,
+        admins: admins,
+        rooms: rooms,
+        password: password
+    };
+
+    (views[tab] || bookings)(v);
+}
+
+
+// ==========================================
+// TABLE
+// ==========================================
+
+function table(h, rows) {
+
+    return el('table', {}, [
+        el('thead', {}, [
+            el('tr', {}, h.map(function(x) {
+                return el('th', {textContent: x});
+            }))
+        ]),
+
+        el('tbody', {}, rows)
+    ]);
+}
+
+
+// ==========================================
+// BOOKINGS
+// ==========================================
+
+function bookings(v) {
+
+    var sel = el('select', {
+        onchange: function() {
+            filter = sel.value;
+            show();
+        }
+
+    }, [
+        ['', 'Бүгд'],
+        ['pending', 'Хүлээгдэж буй'],
+        ['confirmed', 'Баталсан'],
+        ['cancelled', 'Цуцалсан']
+
+    ].map(function(o) {
+
+        var x = el('option', {
+            value: o[0],
+            textContent: o[1]
+        });
+
+        x.selected = filter == o[0];
+
+        return x;
+    }));
+
+    var whenSel = el('select', {
+        onchange: function() {
+            when = whenSel.value;
+            show();
+        }
+
+    }, [
+        ['upcoming', 'Ирэх захиалгууд'],
+        ['past', 'Өнгөрсөн захиалгууд']
+
+    ].map(function(o) {
+
+        var x = el('option', {
+            value: o[0],
+            textContent: o[1]
+        });
+
+        x.selected = when == o[0];
+
+        return x;
+    }));
+
+    v.append(
+        el('div', {className: 'bar'}, [whenSel, sel])
+    );
+
+    var today = new Date(
+        Date.now() + 8 * 36e5
+    ).toISOString().slice(0, 10);
+
+    api(
+        'GET',
+        'admin/bookings?' +
+        (when == 'past' ? 'before=' : 'from=') + today +
+        (filter ? '&status=' + filter : '')
+    )
+
+    .then(function(d) {
+
+        v.append(
+            table(
+                ['Захиалсан огноо', 'Дугаар', 'Огноо', 'Өрөө', 'Хэн', 'Утас', 'Хүн', 'Үнэ', 'Төлөв', ''],
+
+                d.map(function(b) {
+
+                    var act = el('td');
+
+                    [
+                        ['confirmed', 'Батлах'],
+                        ['cancelled', 'Цуцлах']
+
+                    ].forEach(function(a) {
+
+                        if (b.status != a[0]) {
+
+                            act.append(
+                                el('button', {
+                                    className: 'btn sm' +
+                                        (a[0] == 'cancelled' ? ' ghost' : ''),
+
+                                    textContent: a[1],
+
+                                    onclick: function() {
+
+                                        if (
+                                            a[0] == 'cancelled' &&
+                                            !confirm('#' + b.id + ' захиалгыг цуцлах уу?')
+                                        ) {
+                                            return;
+                                        }
+
+                                        api(
+                                            'PATCH',
+                                            'admin/bookings/' + b.id,
+                                            {status: a[0]}
+                                        )
+
+                                        .then(show)
+
+                                        .catch(function(x) {
+                                            err(x.message);
+                                        });
+                                    }
+                                })
+                            );
+                        }
+                    });
+
+                    act.append(
+                        el('button', {
+                            className: 'btn ghost sm',
+                            textContent: 'Устгах',
+
+                            onclick: function() {
+
+                                if (!confirm(
+                                    '#' + b.id + ' захиалгыг бүр мөсөн устгах уу?'
+                                )) {
+                                    return;
+                                }
+
+                                api('DELETE', 'admin/bookings/' + b.id)
+
+                                .then(show)
+
+                                .catch(function(x) {
+                                    err(x.message);
+                                });
+                            }
+                        })
+                    );
+
+                    // same-day bookings show only the end time,
+                    // overnight ones show the full end date
+                    var endText = b.end.slice(0, 10) == b.start.slice(0, 10)
+                        ? b.end.slice(11)
+                        : b.end;
+
+                    return el('tr', {}, [
+
+                        el('td', {
+                            textContent: (b.created || '')
+                                .slice(0, 16)
+                                .replace('T', ' ')
+                        }),
+
+                        el('td', {
+                            textContent: '#' + b.id
+                        }),
+
+                        el('td', {
+                            textContent: b.start + ' → ' + endText
+                        }),
+
+                        el('td', {
+                            textContent: b.room
+                        }),
+
+                        el('td', {
+                            textContent: b.name +
+                                (b.note ? ' · ' + b.note : '')
+                        }),
+
+                        el('td', {}, [
+                            el('a', {
+                                href: 'tel:' + b.phone.replace(/[^+0-9]/g, ''),
+                                textContent: b.phone
+                            })
+                        ]),
+
+                        el('td', {
+                            textContent: b.guests
+                        }),
+
+                        // price comes from the server (saved when booked)
+                        el('td', {
+                            textContent: money(b.total_amount)
+                        }),
+
+                        el('td', {
+                            className: 's-' + b.status,
+                            textContent: STATUS_MN[b.status] || b.status
+                        }),
+
+                        act
+
+                    ]);
+                })
+            )
+        );
+
+        if (!d.length) {
+            v.append(
+                el('p', {
+                    textContent: 'Захиалга алга.'
+                })
+            );
+        }
+
+    })
+
+    .catch(function(x) {
+        err(x.message);
+    });
+}
+
+
+// ==========================================
+// ADMIN ACCOUNTS
+// ==========================================
+
+function admins(v) {
+
+    var f = el('form', {
+        className: 'bar',
+
+        onsubmit: function(e) {
+
+            e.preventDefault();
+
+            api('POST', 'admin/admins', {
+                username: f.u.value,
+                password: f.p.value,
+                role: f.r.value
+            })
+
+            .then(show)
+
+            .catch(function(x) {
+                err(x.message);
+            });
+        }
+
+    }, [
+
+        el('input', {
+            name: 'u',
+            placeholder: 'Нэр',
+            required: true
+        }),
+
+        el('input', {
+            name: 'p',
+            type: 'password',
+            placeholder: 'Нууц үг (8+)',
+            required: true,
+            autocomplete: 'new-password'
+        }),
+
+        el('select', {
+            name: 'r'
+        }, [
+            el('option', {
+                value: 'staff',
+                textContent: 'staff'
+            }),
+
+            el('option', {
+                value: 'owner',
+                textContent: 'owner'
+            })
+        ]),
+
+        el('button', {
+            className: 'btn sm',
+            textContent: 'Админ нэмэх'
+        })
+    ]);
+
+    v.append(f);
+
+    api('GET', 'admin/admins')
+
+    .then(function(d) {
+
+        v.append(
+            table(
+                ['Нэр', 'Эрх', 'Үүсгэсэн', ''],
+
+                d.map(function(a) {
+
+                    return el('tr', {}, [
+
+                        el('td', {
+                            textContent: a.username
+                        }),
+
+                        el('td', {
+                            textContent: a.role
+                        }),
+
+                        el('td', {
+                            textContent: (a.created || '').slice(0, 10)
+                        }),
+
+                        el('td', {}, [
+
+                            el('button', {
+                                className: 'btn ghost sm',
+                                textContent: 'Устгах',
+
+                                onclick: function() {
+
+                                    if (confirm(a.username + ' устгах уу?')) {
+
+                                        api(
+                                            'DELETE',
+                                            'admin/admins/' + a.id
+                                        )
+
+                                        .then(show)
+
+                                        .catch(function(x) {
+                                            err(x.message);
+                                        });
+                                    }
+                                }
+                            })
+                        ])
+                    ]);
+                })
+            )
+        );
+    })
+
+    .catch(function(x) {
+        err(x.message);
+    });
+}
+
+
+// ==========================================
+// ROOMS
+// ==========================================
+
+function rooms(v) {
+
+    api('GET', 'admin/rooms')
+
+    .then(function(d) {
+
+        v.append(
+            table(
+                ['Нэр', 'Төрөл', 'Багтаамж', 'Нэг цагийн үнэ (₮)', 'Идэвхтэй', ''],
+
+                d.map(function(r) {
+
+                    var n = el('input', {
+                        value: r.name
+                    });
+
+                    var k = el('select', {}, [
+                        ['normal', 'Энгийн'],
+                        ['vip+', 'VIP+'],
+                        ['vip++', 'VIP++']
+                    ].map(function(o) {
+                        var x = el('option', {
+                            value: o[0],
+                            textContent: o[1]
+                        });
+                        x.selected = r.kind == o[0];
+                        return x;
+                    }));
+
+                    var c = el('input', {
+                        type: 'number',
+                        value: r.capacity,
+                        min: 1,
+                        max: 200
+                    });
+
+                    var p = el('input', {
+                        type: 'number',
+                        value: r.price,
+                        min: 0,
+                        step: 1000
+                    });
+
+                    var a = el('input', {
+                        type: 'checkbox',
+                        checked: !!r.active
+                    });
+
+                    return el('tr', {}, [
+
+                        el('td', {}, [n]),
+
+                        el('td', {}, [k]),
+
+                        el('td', {}, [c]),
+
+                        el('td', {}, [p]),
+
+                        el('td', {}, [a]),
+
+                        el('td', {}, [
+
+                            el('button', {
+                                className: 'btn sm',
+                                textContent: 'Хадгалах',
+
+                                onclick: function() {
+
+                                    api(
+                                        'PATCH',
+                                        'admin/rooms/' + r.id,
+                                        {
+                                            name: n.value,
+                                            kind: k.value,
+                                            capacity: c.value,
+                                            price: p.value,
+                                            active: a.checked
+                                        }
+                                    )
+
+                                    .then(function() {
+                                        err('Хадгаллаа');
+                                    })
+
+                                    .catch(function(x) {
+                                        err(x.message);
+                                    });
+                                }
+                            })
+                        ])
+                    ]);
+                })
+            )
+        );
+    })
+
+    .catch(function(x) {
+        err(x.message);
+    });
+}
+
+
+// ==========================================
+// PASSWORD
+// ==========================================
+
+function password(v) {
+
+    var f = el('form', {
+
+        onsubmit: function(e) {
+
+            e.preventDefault();
+
+            api('POST', 'admin/password', {
+                old: f.o.value,
+                new: f.n.value
+            })
+
+            .then(function() {
+                f.reset();
+                err('Нууц үг солигдлоо');
+            })
+
+            .catch(function(x) {
+                err(x.message);
+            });
+        }
+
+    }, [
+
+        el('label', {
+            textContent: 'Хуучин нууц үг'
+        }, [
+            el('input', {
+                name: 'o',
+                type: 'password',
+                required: true,
+                autocomplete: 'current-password'
+            })
+        ]),
+
+        el('label', {
+            textContent: 'Шинэ нууц үг (8+)'
+        }, [
+            el('input', {
+                name: 'n',
+                type: 'password',
+                required: true,
+                autocomplete: 'new-password'
+            })
+        ]),
+
+        el('button', {
+            className: 'btn',
+            textContent: 'Солих'
+        })
+    ]);
+
+    f.style.maxWidth = '360px';
+
+    v.append(f);
+}
+
+
+// ==========================================
+// AUTO LOGIN
+// ==========================================
+
+if (T) {
+    start();
+}
+
+</script>
+</body>
+</html>

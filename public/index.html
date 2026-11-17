@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Stars Karaoke</title>
+    <meta name="author" content="Stars Karaoke">
+    <meta name="copyright" content="© 2026 Stars Karaoke">
+    <meta name="referrer" content="no-referrer">
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* make sure the hidden attribute always wins over style.css */
+        [hidden]{display:none!important}
+    </style>
+</head>
+
+<body>
+
+<!-- ENTRY GATE: must accept terms and confirm 21+ -->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div class="gate-card">
+
+        <div id="gateAsk">
+            <p class="gate-label">STARS KARAOKE</p>
+            <h2 id="gateTitle">Тавтай морил</h2>
+            <p>Үргэлжлүүлэхээсээ өмнө насаа баталж, нөхцөлөө зөвшөөрнө үү.</p>
+
+            <p class="gate-q">Та 21 ба түүнээс дээш настай юу?</p>
+            <div class="gate-ages">
+                <button type="button" class="btn ghost" id="ageYes" aria-pressed="false">Тийм, 21+</button>
+                <button type="button" class="btn ghost" id="ageNo" aria-pressed="false">Үгүй</button>
+            </div>
+
+            <label class="gate-tos">
+                <input type="checkbox" id="gateTos">
+                <span>
+                    Би
+                    <a href="terms.html" target="_blank" rel="noopener">Үйлчилгээний нөхцөл</a>
+                    болон
+                    <a href="privacy.html" target="_blank" rel="noopener">Нууцлалын бодлого</a>-ыг
+                    уншиж, зөвшөөрч байна.
+                </span>
+            </label>
+
+            <button type="button" class="btn gate-go" id="gateGo" disabled>
+                Зөвшөөрч үргэлжлүүлэх
+            </button>
+        </div>
+
+        <div id="gateDeny" hidden>
+            <p class="gate-label">STARS KARAOKE</p>
+            <h2>Уучлаарай</h2>
+            <p>Энэ сайт болон манай үйлчилгээ 21 ба түүнээс дээш насныханд зориулагдсан тул
+            үргэлжлүүлэх боломжгүй.</p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+var TERMS_VERSION = '2026-11-10-2';   // keep equal to TERMS_VERSION in server.py
+var accepted = false;
+
+(function() {
+    var gate = document.getElementById('gate');
+
+    function saved() {
+        try {
+            var s = JSON.parse(localStorage.getItem('stars_gate') || 'null');
+            return !!s && s.v === TERMS_VERSION && s.age21 === true;
+        } catch (e) { return false; }
+    }
+
+    function under21() {
+        try { return sessionStorage.getItem('stars_under21') === '1'; }
+        catch (e) { return false; }
+    }
+
+    function lock(on) {
+        document.querySelectorAll('header.hero, main, footer').forEach(function(el) {
+            if (on) el.setAttribute('inert', '');
+            else el.removeAttribute('inert');
+        });
+        document.documentElement.style.overflow = on ? 'hidden' : '';
+    }
+
+    if (saved()) {
+        accepted = true;
+        gate.hidden = true;
+        return;
+    }
+
+    var yes = document.getElementById('ageYes');
+    var no = document.getElementById('ageNo');
+    var tos = document.getElementById('gateTos');
+    var go = document.getElementById('gateGo');
+    var ageOk = false;
+
+    document.documentElement.style.overflow = 'hidden';
+    document.addEventListener('DOMContentLoaded', function() {
+        lock(true);
+        if (!under21()) yes.focus();
+    });
+
+    function showDeny() {
+        document.getElementById('gateAsk').hidden = true;
+        document.getElementById('gateDeny').hidden = false;
+    }
+
+    function refresh() { go.disabled = !(ageOk && tos.checked); }
+
+    yes.addEventListener('click', function() {
+        ageOk = true;
+        yes.setAttribute('aria-pressed', 'true');
+        no.setAttribute('aria-pressed', 'false');
+        refresh();
+    });
+
+    no.addEventListener('click', function() {
+        try { sessionStorage.setItem('stars_under21', '1'); } catch (e) {}
+        showDeny();
+    });
+
+    tos.addEventListener('change', refresh);
+
+    go.addEventListener('click', function() {
+        if (!(ageOk && tos.checked)) return;
+        try {
+            localStorage.setItem('stars_gate', JSON.stringify({
+                v: TERMS_VERSION, age21: true, t: new Date().toISOString()
+            }));
+        } catch (e) {}
+        accepted = true;
+        gate.hidden = true;
+        lock(false);
+    });
+
+    if (under21()) showDeny();
+})();
+</script>
+
+
+<header class="hero">
+    <nav class="nav">
+        <strong>Stars</strong>
+
+        <span>
+            <a class="l" href="#rooms">Өрөөнүүд</a>
+            <a class="l" href="#bar">Бар</a>
+            <a href="#book">Захиалах</a>
+        </span>
+    </nav>
+
+    <div>
+        <h1>Stars<br>Karaoke</h1>
+
+        <p>
+            Найз нөхөд, гэр бүл, хайртай хүмүүстэйгээ
+            мартагдашгүй мөчүүдийг бүтээх тав тухтай орчин.
+            Дуртай дуугаа дуулж, хөгжилтэй цагийг хамтдаа өнгөрүүлээрэй.
+        </p>
+
+        <a class="btn" href="#book">Өрөө захиалах</a>
+        <a class="btn ghost" href="#rooms">Өрөөнүүдийг үзэх</a>
+    </div>
+</header>
+
+<main>
+
+    <!-- BAR -->
+
+    <section id="bar">
+        <div class="split">
+            <div>
+                <h2>Бар</h2>
+
+                <p class="lede">
+                    Өрөөндөө орохоосоо өмнө баараас ундаа, зууш аваарай.
+                    Архи, шампанск, зөөлөн ундаа, чипс бүгд бэлэн.
+                </p>
+            </div>
+
+            <img src="images/bar.jpg" alt="Stars Karaoke-ийн бар">
+        </div>
+    </section>
+
+    <!-- ROOMS -->
+
+    <section id="rooms">
+        <h2>Өрөөгөө сонгоорой</h2>
+
+        <p class="lede">
+            Өрөө бүрт савхин буйдан, гэрэлтдэг ширээ,
+            өөрийн дууны систем бий.
+        </p>
+
+        <div class="rooms" id="roomCards"></div>
+    </section>
+
+    <!-- BOOKING -->
+
+    <section class="book" id="book">
+        <div>
+            <div>
+                <h2>Өрөө захиалах</h2>
+
+                <p class="lede">
+                    Өрөө, цагаа сонгоод захиалгаа илгээгээрэй.
+                    Бид утсаар болон и-мэйлээр баталгаажуулна.
+                </p>
+
+                <p class="contact">
+                    Утас:
+                    <a href="tel:+97677777737">7777 7737</a>
+                    <br>
+
+                    И-мэйл:
+                    <a href="mailto:sanchiravarga52@gmail.com">
+                        sanchiravarga52@gmail.com
+                    </a>
+                </p>
+            </div>
+
+            <form id="f">
+
+                <label>
+                    Өрөө
+                    <select name="room_id" id="room" required></select>
+                </label>
+
+                <label>
+                    Огноо
+                    <input type="date" name="date" id="date" required>
+                </label>
+
+                <p class="out" id="busy" aria-live="polite"></p>
+
+                <label>
+                    Эхлэх цаг
+                    <input type="time" name="time" value="20:00" step="1800" required>
+                </label>
+
+                <p class="out">Ажиллах цаг: 17:00 - 04:00. Захиалга 04:00 цагаас хэтрэхгүй.</p>
+
+                <label>
+                    Хугацаа (цаг)
+                    <input type="number" name="hours" min="1" max="8" value="2" required>
+                </label>
+
+                <label>
+                    Хүний тоо
+                    <input type="number" name="guests" min="1" max="40" value="6" required>
+                </label>
+
+                <label>
+                    Таны нэр
+                    <input name="name" maxlength="80" required>
+                </label>
+
+                <label>
+                    Утас
+                    <input name="phone" type="tel" maxlength="20" placeholder="9911 2233" required>
+                </label>
+
+                <label>
+                    Нэмэлт мэдээлэл
+                    <input name="note" maxlength="300" placeholder="Төрсөн өдөр гэх мэт">
+                </label>
+
+                <label>
+                    И-мэйл (заавал биш)
+                    <input name="email" type="email" maxlength="120" placeholder="name@example.com" autocomplete="email">
+                </label>
+
+                <label class="check">
+                    <input type="checkbox" name="marketing" value="1">
+                    <span>
+                        Урамшуулал, мэдээг и-мэйлээр авахыг зөвшөөрч байна.
+                        И-мэйл бүр дотор нэг товшилтоор бүртгэлээс гарах холбоос байна.
+                    </span>
+                </label>
+
+                <p class="out">
+                    Захиалга илгээснээр та
+                    <a href="terms.html" target="_blank" rel="noopener">Үйлчилгээний нөхцөл</a>,
+                    <a href="privacy.html" target="_blank" rel="noopener">Нууцлалын бодлого</a>-ыг
+                    зөвшөөрч, 21 ба түүнээс дээш настай гэдгээ дахин баталж байна.
+                </p>
+
+
+                <button class="btn" type="submit">
+                    Захиалга илгээх
+                </button>
+
+                <p class="out" id="o" aria-live="polite">
+                    Захиалга илгээсний дараа бид баталгаажуулна.
+                </p>
+
+            </form>
+        </div>
+    </section>
+
+    <!-- PAYMENT CONFIRMATION -->
+
+    <section id="payment" class="payment-section" hidden>
+
+        <div class="payment-card">
+
+            <div class="payment-heading">
+                <p class="payment-label">STARS KARAOKE</p>
+                <h2>Захиалга амжилттай!</h2>
+                <p>Таны захиалгын мэдээлэл бүртгэгдлээ.</p>
+            </div>
+
+            <div class="booking-number">
+                <p>ТАНЫ ЗАХИАЛГЫН ДУГААР</p>
+                <h1 id="paymentId">#0</h1>
+            </div>
+
+            <div class="payment-details">
+
+                <div>
+                    <span>Өрөө</span>
+                    <strong id="paymentRoom"></strong>
+                </div>
+
+                <div>
+                    <span>Хугацаа</span>
+                    <strong id="paymentHours"></strong>
+                </div>
+
+                <div>
+                    <span>Нэг цагийн үнэ</span>
+                    <strong id="paymentHourly"></strong>
+                </div>
+
+            </div>
+
+            <div class="payment-total">
+                <p>НИЙТ ТӨЛӨХ ДҮН</p>
+                <h1 id="paymentAmount"></h1>
+            </div>
+
+            <div class="bank-details">
+                <h3>Банкны дансны мэдээлэл</h3>
+
+                <div>
+                    <span>Банк</span>
+                    <strong id="bankName"></strong>
+                </div>
+
+                <div>
+                    <span>Дансны дугаар</span>
+                    <strong id="bankAccount"></strong>
+                </div>
+
+                <div>
+                    <span>Данс эзэмшигч</span>
+                    <strong id="bankHolder"></strong>
+                </div>
+            </div>
+
+            <div class="payment-warning">
+                <h3>АНХААР!</h3>
+
+                <p>
+                    Банкны апп дээр гүйлгээ хийхдээ
+                    <strong>гүйлгээний утга</strong> хэсэгт
+                    өөрийн захиалгын дугаарыг заавал бичнэ үү.
+                </p>
+
+                <h2 id="transactionId">#0</h2>
+
+                <p>
+                    Захиалгын дугаараа зөв бичсэн эсэхээ шалгаарай.
+                </p>
+            </div>
+
+            <p class="payment-note">
+                Цуцлалт, буцаан олголтын нөхцөлийг
+                <a href="terms.html#cancel" target="_blank">Үйлчилгээний нөхцөл</a>-өөс харна уу.
+                <br>
+            </p>
+
+            <p class="payment-note">
+                Төлбөр шилжүүлсний дараа ажилтан таны захиалгыг баталгаажуулна.
+            </p>
+
+            <button type="button" class="btn payment-new" onclick="newBooking()">
+                Шинэ захиалга хийх
+            </button>
+
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    Stars Karaoke · Улаанбаатар · Утас 7777 7737 · sanchiravarga52@gmail.com
+    <br>
+    <a href="terms.html">Үйлчилгээний нөхцөл</a> ·
+    <a href="privacy.html">Нууцлалын бодлого</a>
+    <small class="copyright">
+        © 2026 Stars Karaoke. Бүх эрх хуулиар хамгаалагдсан. Энэ сайтад байгаа бүх зураг
+        Stars Karaoke-ийн өөрийн эх зураг (original) бөгөөд зохиогчийн эрхээр хамгаалагдсан.
+        Зөвшөөрөлгүй хуулбарлах, дахин ашиглахыг хориглоно. · 21+
+    </small>
+</footer>
+
+<script>
+
+// API CONFIGURATION
+
+var API = (
+    location.port === '5500' ||
+    location.port === '5501'
+)
+    ? 'http://' + location.hostname + ':8000'
+    : '';
+
+var KIND_LABEL = {
+    'normal': 'Энгийн',
+    'vip+': 'VIP+',
+    'vip++': 'VIP++'
+};
+
+var f = document.getElementById('f');
+var o = document.getElementById('o');
+var busy = document.getElementById('busy');
+var room = document.getElementById('room');
+var date = document.getElementById('date');
+var payment = document.getElementById('payment');
+
+var btn = f.querySelector('button[type="submit"]');
+
+var today = new Date(Date.now() + 8 * 36e5)
+    .toISOString()
+    .slice(0, 10);
+
+date.min = today;
+date.value = today;
+
+
+// LOAD ROOMS
+
+fetch(API + '/api/rooms')
+
+    .then(function(r) {
+        if (!r.ok) {
+            throw new Error('Өрөө ачаалж чадсангүй');
+        }
+
+        return r.json();
+    })
+
+    .then(function(d) {
+
+        d.forEach(function(x) {
+
+            var op = document.createElement('option');
+
+            op.value = x.id;
+            op.textContent = x.name + ' · ' +
+                (KIND_LABEL[x.kind] || '') + ' · ' + money(x.price);
+
+            room.append(op);
+
+        });
+
+        // room cards: image is images/<room id>.jpg
+        var box = document.getElementById('roomCards');
+
+        d.forEach(function(x) {
+
+            var fig = document.createElement('figure');
+            var img = document.createElement('img');
+            var h = document.createElement('h3');
+            var p = document.createElement('p');
+
+            img.src = 'images/' + x.id + '.jpg';
+            img.alt = x.name;
+            img.onerror = function() { img.remove(); };
+
+            h.textContent = x.name;
+
+            p.textContent = (KIND_LABEL[x.kind] || '') +
+                ' өрөө · ' + money(x.price) + ' / цаг';
+
+            fig.append(img, h, p);
+            box.append(fig);
+        });
+
+        showBusy();
+
+    })
+
+    .catch(function() {
+
+        o.textContent =
+            'Өрөөний жагсаалтыг ачаалж чадсангүй. Утсаар холбогдоно уу: 7777 7737';
+
+    });
+
+
+// SHOW BOOKED TIMES
+
+var availabilityRequest = 0;
+
+function showBusy() {
+    if (!room.value || !date.value) return;
+
+    var requestId = ++availabilityRequest;
+    var selectedRoom = room.value;
+    var selectedDate = date.value;
+
+    busy.textContent = 'Цагийн мэдээлэл ачаалж байна...';
+
+    fetch(
+        API + '/api/availability?room_id=' +
+        encodeURIComponent(selectedRoom) +
+        '&date=' +
+        encodeURIComponent(selectedDate)
+    )
+    .then(function(r) {
+        if (!r.ok) {
+            throw new Error('Availability error');
+        }
+
+        return r.json();
+    })
+    .then(function(d) {
+        // Ignore old requests
+        if (requestId !== availabilityRequest) return;
+
+        busy.textContent = d.length
+            ? 'Захиалгатай цаг: ' +
+              d.map(function(b) {
+                  // a booking that runs past midnight shows its end date too
+                  var end = b.end.slice(0, 10) === b.start.slice(0, 10)
+                      ? b.end.slice(11)
+                      : b.end;
+
+                  return b.start.slice(11) + '–' + end;
+              }).join(', ')
+            : 'Энэ өдөр бүх цаг сул байна.';
+    })
+    .catch(function() {
+        if (requestId !== availabilityRequest) return;
+
+        busy.textContent = 'Цагийн мэдээлэл ачаалж чадсангүй.';
+    });
+}
+
+room.addEventListener('change', showBusy);
+date.addEventListener('change', showBusy);
+
+
+// SHOW PAYMENT SCREEN
+
+function money(n) {
+    return (Number(n) || 0).toLocaleString('en-US') + '₮';
+}
+
+function showPayment(d) {
+
+    // prices are decided by the server only
+    var hours = Number(d.hours) || 1;
+
+    document.getElementById('paymentId').textContent = '#' + d.id;
+    document.getElementById('transactionId').textContent = '#' + d.id;
+    document.getElementById('paymentRoom').textContent = d.room || '';
+    document.getElementById('paymentHours').textContent = hours + ' цаг';
+    document.getElementById('paymentHourly').textContent = money(d.hourly_price);
+    document.getElementById('paymentAmount').textContent = money(d.total_amount);
+    document.getElementById('bankName').textContent = d.bank_name || '';
+    document.getElementById('bankAccount').textContent = d.bank_account || '';
+    document.getElementById('bankHolder').textContent = d.bank_holder || '';
+
+    f.hidden = true;
+    payment.hidden = false;
+
+    payment.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
+
+}
+
+
+// START NEW BOOKING
+
+function newBooking() {
+
+    payment.hidden = true;
+    f.hidden = false;
+
+    f.reset();
+
+    date.value = today;
+    date.min = today;
+
+    o.textContent =
+        'Захиалга илгээсний дараа бид баталгаажуулна.';
+
+    showBusy();
+
+    document.getElementById('book').scrollIntoView({
+        behavior: 'smooth'
+    });
+
+}
+
+
+// SUBMIT BOOKING
+
+f.addEventListener('submit', function(e) {
+
+    e.preventDefault();
+
+    if (!accepted) {
+        o.textContent = 'Эхлээд насаа баталж, нөхцөлийг зөвшөөрнө үү. Хуудсаа дахин ачаална уу.';
+        return;
+    }
+
+    var v = Object.fromEntries(new FormData(f));
+
+    // opening hours 17:00 -> 04:00 (next day)
+    var tm = (v.time || '').split(':');
+    var startH = Number(tm[0]) + Number(tm[1] || 0) / 60;
+    var dur = Number(v.hours) || 0;
+
+    if (startH >= 4 && startH < 17) {
+        o.textContent = 'Захиалгыг зөвхөн 17:00-04:00 цагийн хооронд авна.';
+        return;
+    }
+
+    var closeAt = startH >= 17 ? 28 : 4;
+
+    if (startH + dur > closeAt || (startH < 4 && startH + dur > 4)) {
+        o.textContent = 'Захиалга 04:00 цагаас хэтрэхгүй байх ёстой.';
+        return;
+    }
+
+    v.consent = '1';
+    v.age21 = '1';
+    v.terms_version = TERMS_VERSION;
+    v.marketing = f.elements.marketing.checked ? '1' : '';
+
+    btn.disabled = true;
+    btn.textContent = 'Илгээж байна...';
+
+    o.textContent = 'Захиалга илгээж байна...';
+
+    fetch(API + '/api/bookings', {
+
+        method: 'POST',
+
+        headers: {
+            'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify(v)
+
+    })
+
+        .then(function(r) {
+
+            // error pages (502, proxy) may not be JSON
+            return r.json().catch(function() {
+                return {};
+            }).then(function(d) {
+
+                return {
+                    ok: r.ok,
+                    d: d
+                };
+
+            });
+
+        })
+
+        .then(function(x) {
+
+            if (x.ok) {
+
+                showPayment(x.d);
+
+            } else {
+
+                o.textContent =
+                    x.d.error || 'Алдаа гарлаа';
+
+                showBusy();
+
+            }
+
+        })
+
+        .catch(function() {
+
+            o.textContent =
+                'Сүлжээний алдаа. Дахин оролдоно уу.';
+
+        })
+
+        .then(function() {
+
+            btn.disabled = false;
+            btn.textContent = 'Захиалга илгээх';
+
+        });
+
+});
+
+</script>
+
+</body>
+</html>

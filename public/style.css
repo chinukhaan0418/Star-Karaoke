@@ -1,0 +1,504 @@
+/* Fonts are served from this site (public/fonts/), never from Google.
+   See public/fonts/README-ADD-FONTS-HERE.txt */
+@font-face{font-family:Forum;font-style:normal;font-weight:400;font-display:swap;
+  src:local("Forum"),local("Forum-Regular"),url(fonts/forum-regular.woff2) format("woff2")}
+@font-face{font-family:Limelight;font-style:normal;font-weight:400;font-display:swap;
+  src:local("Limelight"),url(fonts/limelight-regular.woff2) format("woff2")}
+@font-face{font-family:Jost;font-style:normal;font-weight:300;font-display:swap;
+  src:local("Jost Light"),local("Jost-Light"),url(fonts/jost-300.woff2) format("woff2")}
+@font-face{font-family:Jost;font-style:normal;font-weight:400;font-display:swap;
+  src:local("Jost"),local("Jost-Regular"),url(fonts/jost-400.woff2) format("woff2")}
+@font-face{font-family:Jost;font-style:normal;font-weight:500;font-display:swap;
+  src:local("Jost Medium"),local("Jost-Medium"),url(fonts/jost-500.woff2) format("woff2")}
+
+:root {
+    --ink: #12061f;
+    --ink2: #1c0c30;
+    --text: #efe6f7;
+    --mute: #a899bd;
+    --pink: #d63ad1;
+    --violet: #6a4bff;
+    --brass: #c9a46a;
+    color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font: 300 1.05rem/1.65 Jost, "Helvetica Neue", Arial, sans-serif;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+a {
+    color: inherit;
+}
+
+:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
+}
+
+
+/* HEADINGS */
+
+h1,
+h2,
+h3 {
+    font-family: Forum, Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    margin: 0;
+    line-height: 1.05;
+}
+
+h1 {
+    font-family: Limelight, Forum, Georgia, serif;
+}
+
+h2 {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    margin-bottom: 1rem;
+    color: var(--brass);
+}
+
+
+/* HERO */
+
+.hero {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    align-items: flex-end;
+    padding: 2rem clamp(1.2rem, 5vw, 4rem) 4rem;
+    background: #000 url(images/hero.jpg) center/cover no-repeat;
+    isolation: isolate;
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+        180deg,
+        rgba(18, 6, 31, .15) 0%,
+        rgba(18, 6, 31, .55) 55%,
+        var(--ink) 100%
+    );
+}
+
+.hero h1 {
+    font-size: clamp(3.4rem, 13vw, 9.5rem);
+    letter-spacing: .01em;
+    text-shadow: 0 0 40px rgba(214, 58, 209, .55);
+}
+
+.hero p {
+    max-width: 34ch;
+    font-size: 1.25rem;
+    margin: 1rem 0 1.8rem;
+}
+
+
+/* NAVIGATION */
+
+.nav {
+    position: absolute;
+    top: 1.2rem;
+    left: clamp(1.2rem, 5vw, 4rem);
+    right: clamp(1.2rem, 5vw, 4rem);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .95rem;
+}
+
+.nav a {
+    text-decoration: none;
+    margin-left: 1.4rem;
+}
+
+.nav strong {
+    font-family: Limelight, serif;
+    font-weight: 400;
+    font-size: 1.2rem;
+    color: var(--brass);
+}
+
+
+/* BUTTONS */
+
+.btn {
+    display: inline-block;
+    padding: .85rem 1.7rem;
+    background: var(--pink);
+    color: #fff;
+    border: 0;
+    font: 500 1rem Jost, sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background .2s, opacity .2s;
+}
+
+.btn:hover {
+    background: #e65be1;
+}
+
+.btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.btn.ghost {
+    background: none;
+    border: 1px solid var(--brass);
+    color: var(--brass);
+    margin-left: .6rem;
+}
+
+
+/* SECTIONS */
+
+section {
+    padding: 5rem clamp(1.2rem, 5vw, 4rem);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.lede {
+    max-width: 56ch;
+    color: var(--mute);
+}
+
+.split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+}
+
+.split img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+    border: 1px solid var(--brass);
+}
+
+
+/* ROOMS */
+
+.rooms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+}
+
+.rooms figure {
+    margin: 0;
+}
+
+.rooms img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-bottom: 3px solid var(--violet);
+}
+
+.rooms figure:nth-child(2n) img {
+    border-color: var(--pink);
+}
+
+.rooms h3 {
+    font-size: 1.5rem;
+    margin: 1rem 0 .3rem;
+}
+
+.rooms p {
+    margin: 0;
+    color: var(--mute);
+}
+
+
+/* BOOKING */
+
+.book {
+    background: var(--ink2);
+    max-width: none;
+}
+
+.book > div {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+}
+
+form {
+    display: grid;
+    gap: 1rem;
+}
+
+label {
+    display: grid;
+    gap: .3rem;
+    font-size: .95rem;
+    color: var(--mute);
+}
+
+input,
+select {
+    padding: .8rem;
+    background: var(--ink);
+    color: var(--text);
+    border: 1px solid #4a3568;
+    font: inherit;
+    border-radius: 2px;
+    min-width: 0;
+}
+
+.out {
+    white-space: pre-wrap;
+    border-left: 3px solid var(--brass);
+    padding: .8rem 1rem;
+    background: var(--ink);
+    margin: 0;
+    min-height: 4rem;
+}
+
+.contact {
+    margin-top: 1.5rem;
+}
+
+
+/* PAYMENT SCREEN */
+
+.payment-section {
+    max-width: 850px;
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+}
+
+.payment-card {
+    background: var(--ink2);
+    border: 1px solid #4a3568;
+    padding: clamp(1.2rem, 4vw, 3rem);
+    border-radius: 4px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, .25);
+}
+
+.payment-heading {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.payment-heading h2 {
+    margin: .5rem 0;
+}
+
+.payment-heading > p:last-child {
+    color: var(--mute);
+}
+
+.payment-label {
+    color: var(--brass);
+    letter-spacing: .25em;
+    font-size: .8rem;
+}
+
+.booking-number {
+    text-align: center;
+    background: var(--ink);
+    border: 1px solid var(--brass);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.booking-number p,
+.payment-total p {
+    color: var(--mute);
+    font-size: .85rem;
+    letter-spacing: .12em;
+    margin: 0 0 .5rem;
+}
+
+.booking-number h1 {
+    color: var(--pink);
+    font-size: 2.8rem;
+}
+
+.payment-details {
+    display: grid;
+    gap: .8rem;
+    margin: 1.5rem 0;
+}
+
+.payment-details > div,
+.bank-details > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .7rem 0;
+    border-bottom: 1px solid #33204d;
+}
+
+.payment-details span,
+.bank-details span {
+    color: var(--mute);
+}
+
+.payment-details strong,
+.bank-details strong {
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.payment-total {
+    text-align: center;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    background: var(--ink);
+    border: 1px solid var(--pink);
+}
+
+.payment-total h1 {
+    color: var(--brass);
+    font-size: clamp(2rem, 7vw, 3rem);
+    overflow-wrap: anywhere;
+}
+
+.bank-details {
+    margin: 2rem 0;
+}
+
+.bank-details h3 {
+    color: var(--brass);
+    font-size: 1.6rem;
+    margin-bottom: .8rem;
+}
+
+.payment-warning {
+    background: rgba(214, 58, 209, .12);
+    border-left: 4px solid var(--pink);
+    padding: 1.2rem;
+    margin: 2rem 0;
+}
+
+.payment-warning h3 {
+    color: var(--pink);
+    font-size: 1.5rem;
+}
+
+.payment-warning p {
+    margin: .7rem 0;
+}
+
+.payment-warning h2 {
+    text-align: center;
+    color: var(--brass);
+    font-size: 2.5rem;
+    margin: 1rem 0;
+    overflow-wrap: anywhere;
+}
+
+.payment-note {
+    color: var(--mute);
+    text-align: center;
+}
+
+.payment-new {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+
+/* FOOTER */
+
+footer {
+    padding: 2rem;
+    text-align: center;
+    color: var(--mute);
+    font-size: .9rem;
+}
+
+
+/* HIDDEN ELEMENTS */
+
+[hidden] {
+    display: none !important;
+}
+
+
+/* MOBILE */
+
+@media(max-width: 760px) {
+
+    .split,
+    .book > div {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .nav a.l {
+        display: none;
+    }
+
+    section {
+        padding: 3.5rem 1.2rem;
+    }
+
+    .payment-section {
+        padding: 2rem 1rem;
+    }
+
+    .payment-card {
+        padding: 1.2rem;
+    }
+
+    .payment-details > div,
+    .bank-details > div {
+        align-items: flex-start;
+    }
+}
+
+@media(prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
+
+/* ENTRY GATE (accept terms + 21+) */
+.gate{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  padding:1rem;background:rgba(10,3,18,.97);overflow:auto}
+.gate[hidden]{display:none!important}
+.gate-card{width:100%;max-width:540px;background:var(--ink2);border:1px solid var(--brass);
+  padding:2rem 1.5rem;text-align:center}
+.gate-card h2{font-size:clamp(1.7rem,6vw,2.3rem);margin-bottom:.8rem}
+.gate-label{letter-spacing:.3em;font-size:.8rem;color:var(--mute);margin:0 0 .6rem}
+.gate-q{margin:1.4rem 0 .6rem;font-weight:500}
+.gate-ages{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
+.gate-ages .btn[aria-pressed="true"]{background:var(--brass);color:var(--ink);border-color:var(--brass)}
+.gate-tos{display:flex;gap:.6rem;align-items:flex-start;text-align:left;font-size:.92rem;margin:1.4rem 0 1.2rem}
+.gate-tos input,.check input{width:auto;margin-top:.3rem}
+.gate-go{width:100%}
+.check{display:flex;gap:.6rem;align-items:flex-start;font-size:.9rem}
+.copyright{display:block;margin-top:.8rem;font-size:.8rem;opacity:.75}
